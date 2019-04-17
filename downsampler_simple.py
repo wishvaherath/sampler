@@ -1,6 +1,7 @@
 from __future__ import division
 from itertools import izip
 import gzip
+import math
 import sys
 import io
 import random
@@ -9,6 +10,7 @@ import random
 RESOLUTION = 100
 ENTRIES_TO_BATCH = 100
 BUFFER = True
+SELECT_RATIO_CORRECTION = 1
 
 gz_file_name_1 = sys.argv[1].strip()
 gz_file_name_2 = sys.argv[2].strip()
@@ -43,18 +45,30 @@ else:
     f_out_2 = gz_out_2
 
 #randomizing stuff
-select_ratio = round(sample_size/total_size,int(RESOLUTION/10)) * RESOLUTION
-select_ratio = select_ratio+1
+# select_ratio = round(sample_size/total_size,int(RESOLUTION/10)) * RESOLUTION
+select_ratio = sample_size/total_size
+if select_ratio >=1:
+    #sanity check
+    print "ERROR: sampling higher than the total reads"
+    sys.exit(1)
+
+#compensating
+select_ratio = select_ratio * SELECT_RATIO_CORRECTION
+
+#auto_setting the resolution
+RESOLUTION = math.pow(10,abs(int(math.log10(select_ratio)))+1)
+CUTOFF = int(select_ratio * RESOLUTION) + 1
+
+print " Selct Ratio: {} , RESOLUTION:{} cutoff: {}".format(select_ratio,RESOLUTION, (CUTOFF))
 
 print select_ratio
 def pick_reads():
     dice = random.randint(0,RESOLUTION)
-    if dice < select_ratio:
+    if dice < CUTOFF:
         #pick
         return True
     else:
         return False
-
 
 def list_of_lists_to_file(tb_1, fo_1,tb_2, fo_2):
     for i in tb_1:
@@ -115,7 +129,7 @@ for line_1, line_2 in izip(f_1,f_2):
         #status update
         if total_count % 10000 == 0:
             if picked_count != 0 and total_count != 0:
-                message = "Picked {} entries out of {}. pick_rate: {}% , pick_progress: {}% , current_state: {}%".format(picked_count, total_count, round((picked_count/total_count) * 100,2), round((picked_count/sample_size) * 100,2), round((total_count / total_size) * 100,2))
+                message = "Picked {} entries out of {}%. Current_Pick_Rate: {}% , Pick_Progress: {}% , Read_Progress: {}%".format(picked_count, total_count,  round((picked_count/total_count) * 100,2), round((picked_count/sample_size) * 100,2), round((total_count / total_size) * 100,2))
                 sys.stdout.write(message)
                 sys.stdout.flush()
                 sys.stdout.write('\b' * len(message))
