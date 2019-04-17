@@ -5,18 +5,35 @@ import math
 import sys
 import io
 import random
+import argparse
+
+
+parser = argparse.ArgumentParser(description="Randomly picks chunks of neighbouring reads to downsample paired fastq.gz files")
+parser.add_argument("-1", "--R1", type=str, help="R1_fastq.gz file name", required = True)
+parser.add_argument("-2", "--R2", type=str, help="R2_fastq.gz file name", required = True)
+parser.add_argument("-t", "--total", type=int, help = "Total number of reads in the file", required = True)
+parser.add_argument("-d", "--downsample", type=int, help = "Number of reads to be included in the result file after sampling", required = True)
+parser.add_argument("-s", "--bundleSize", type=int, help = "Number of neighbouring reads to be picked per iteration (default = 10000)", default=10000)
+parser.add_argument("-c", "--correction", type=float, help = "Multipler for the select radio (default =1)", default = 1)
+parser.add_argument("-b","--ioBuffer", type=bool, help=" Enable buffering for read and write of files", default = True)
+parser.add_argument("-r","--resolution", type=int, help = "Width of the sampling (default = 100)", default =100)
+args = parser.parse_args()
+
+
+
+
+
 
 #constants
-RESOLUTION = 100
-ENTRIES_TO_BATCH = 100
-BUFFER = True
-SELECT_RATIO_CORRECTION = 1
+RESOLUTION = args.resolution
+ENTRIES_TO_BATCH = args.bundleSize
+BUFFER = args.ioBuffer
+SELECT_RATIO_CORRECTION = args.correction
 
-gz_file_name_1 = sys.argv[1].strip()
-gz_file_name_2 = sys.argv[2].strip()
-total_size = int(sys.argv[3].strip())
-sample_size = int(sys.argv[4].strip())
-ENTRIES_TO_BATCH = int(sys.argv[5].strip())
+gz_file_name_1 = args.R1
+gz_file_name_2 = args.R2
+total_size = args.total
+sample_size = args.downsample
 gz_1 = gzip.open(gz_file_name_1,'rb')
 gz_2 = gzip.open(gz_file_name_2,'rb')
 if BUFFER:
