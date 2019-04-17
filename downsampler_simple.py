@@ -46,15 +46,12 @@ else:
 select_ratio = round(sample_size/total_size,int(RESOLUTION/10)) * RESOLUTION
 select_ratio = select_ratio+1
 
+print select_ratio
 def pick_reads():
     dice = random.randint(0,RESOLUTION)
     if dice < select_ratio:
-        dice2 = random.randint(0,ENTRIES_TO_BATCH)
-        if dice2 == 1:
-            #pick
-            return True
-        else:
-            return False
+        #pick
+        return True
     else:
         return False
 
