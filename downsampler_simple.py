@@ -19,16 +19,10 @@ parser.add_argument("-b","--ioBuffer", type=bool, help=" Enable buffering for re
 parser.add_argument("-r","--resolution", type=int, help = "Width of the sampling (default = 100)", default =100)
 args = parser.parse_args()
 
-
-
-
-
-
-#constants
-RESOLUTION = args.resolution
-ENTRIES_TO_BATCH = args.bundleSize
-BUFFER = args.ioBuffer
-SELECT_RATIO_CORRECTION = args.correction
+resolution = args.resolution
+entries_to_batch = args.bundleSize
+buffer = args.ioBuffer
+select_ratio_correction = args.correction
 
 gz_file_name_1 = args.R1
 gz_file_name_2 = args.R2
@@ -36,7 +30,7 @@ total_size = args.total
 sample_size = args.downsample
 gz_1 = gzip.open(gz_file_name_1,'rb')
 gz_2 = gzip.open(gz_file_name_2,'rb')
-if BUFFER:
+if buffer:
     f_1 = io.BufferedReader(gz_1)
     f_2 = io.BufferedReader(gz_2)
 else:
@@ -52,7 +46,7 @@ output_file_2 = gz_file_name_2 + "_downsampled_to_" + str(sample_size) + "_.gz"
 gz_out_1 = gzip.open(output_file_1, "wb")
 gz_out_2 = gzip.open(output_file_2, "wb")
 
-if BUFFER:
+if buffer:
 
     f_out_1 = io.BufferedWriter(gz_out_1)
     f_out_2 = io.BufferedWriter(gz_out_2)
@@ -62,7 +56,7 @@ else:
     f_out_2 = gz_out_2
 
 #randomizing stuff
-# select_ratio = round(sample_size/total_size,int(RESOLUTION/10)) * RESOLUTION
+# select_ratio = round(sample_size/total_size,int(resolution/10)) * resolution
 select_ratio = sample_size/total_size
 if select_ratio >=1:
     #sanity check
@@ -70,18 +64,19 @@ if select_ratio >=1:
     sys.exit(1)
 
 #compensating
-select_ratio = select_ratio * SELECT_RATIO_CORRECTION
+select_ratio = select_ratio * select_ratio_correction
 
 #auto_setting the resolution
-RESOLUTION = math.pow(10,abs(int(math.log10(select_ratio)))+1)
-CUTOFF = int(select_ratio * RESOLUTION) + 1
+resolution = math.pow(10,abs(int(math.log10(select_ratio)))+1)
+cutoff = int(select_ratio * resolution) + 1
 
-print " Selct Ratio: {} , RESOLUTION:{} cutoff: {}".format(select_ratio,RESOLUTION, (CUTOFF))
+print "Downsampling Report: \n ---------------- \n I am picking {} reads from {} reads in the {} and {} files. \n The theoritical pick ratio is set at {}. Every {} in {} is selected".format(sample_size, total_size, gz_file_name_1, gz_file_name_2, select_ratio, cutoff, resolution)
+print " Selct Ratio: {} , resolution:{} cutoff: {}".format(select_ratio,resolution, (cutoff))
 
 print select_ratio
 def pick_reads():
-    dice = random.randint(0,RESOLUTION)
-    if dice < CUTOFF:
+    dice = random.randint(0,resolution)
+    if dice < cutoff:
         #pick
         return True
     else:
@@ -146,16 +141,16 @@ for line_1, line_2 in izip(f_1,f_2):
         #status update
         if total_count % 10000 == 0:
             if picked_count != 0 and total_count != 0:
-                message = "Picked {} entries out of {}%. Current_Pick_Rate: {}% , Pick_Progress: {}% , Read_Progress: {}%".format(picked_count, total_count,  round((picked_count/total_count) * 100,2), round((picked_count/sample_size) * 100,2), round((total_count / total_size) * 100,2))
+                message = "Picked {} entries out of {}. Current_Pick_Rate: {}% , Pick_Progress: {}% , Read_Progress: {}%".format(picked_count, total_count,  round((picked_count/total_count) * 100,2), round((picked_count/sample_size) * 100,2), round((total_count / total_size) * 100,2))
                 sys.stdout.write(message)
                 sys.stdout.flush()
                 sys.stdout.write('\b' * len(message))
 
-    if len(temp_batch_1) == ENTRIES_TO_BATCH:
+    if len(temp_batch_1) == entries_to_batch:
         #the buffer is full, check to keep or discard
         if pick_reads():
             list_of_lists_to_file(temp_batch_1, f_out_1, temp_batch_2, f_out_2)
-            picked_count = picked_count + ENTRIES_TO_BATCH
+            picked_count = picked_count + entries_to_batch
         temp_batch_1 = []
         temp_batch_2 = []
 
